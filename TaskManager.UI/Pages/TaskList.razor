@@ -1,0 +1,99 @@
+﻿@page "/tasks"
+@using TaskManager.Models
+@using TaskManager.UI.Services.Interfaces
+@inject ITaskService TaskService
+@inject IJSRuntime JS
+
+<div class="container page-transition mt-4">
+
+    @if (!string.IsNullOrEmpty(toastMessage))
+    {
+        <div class="toast show position-fixed bottom-0 end-0 m-3 text-white bg-success shadow" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">@toastMessage</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => toastMessage = null"></button>
+            </div>
+        </div>
+    }
+
+    <h4 class="mb-4">Görev Listesi</h4>
+
+    @if (tasks == null)
+    {
+        <p>Yükleniyor...</p>
+    }
+    else if (!tasks.Any())
+    {
+        <p>Hiç görev yok.</p>
+    }
+    else
+    {
+        <table class="table table-bordered table-hover shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Başlık</th>
+                    <th>Açıklama</th>
+                    <th>Bitiş Tarihi</th>
+                    <th>Tamamlandı mı?</th>
+                    <th style="width: 160px;">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var task in tasks)
+                {
+                    <tr>
+                        <td>@task.Title</td>
+                        <td>@task.Description</td>
+                        <td>@task.DueDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(task.IsCompleted ? "Evet" : "Hayır")</td>
+                        <td>
+                            <NavLink class="btn btn-sm btn-primary me-2" href="@($"/edit-task/{task.Id}")">Düzenle</NavLink>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteTask(task.Id)">Sil</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+</div>
+
+@code {
+    private List<TaskItem>? tasks;
+    private string? toastMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tasks = await TaskService.GetAllAsync();
+    }
+
+    private async Task DeleteTask(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Bu görevi silmek istediğinize emin misiniz?");
+        if (confirmed)
+        {
+            var success = await TaskService.DeleteAsync(id);
+            if (success)
+            {
+                tasks = await TaskService.GetAllAsync();
+                ShowToast("Görev başarıyla silindi.");
+            }
+            else
+            {
+                ShowToast("Görev silinirken bir hata oluştu.", isError: true);
+            }
+        }
+    }
+
+    private void ShowToast(string message, bool isError = false)
+    {
+        toastMessage = message;
+        StateHasChanged();
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            toastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

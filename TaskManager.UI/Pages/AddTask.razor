@@ -1,0 +1,56 @@
+﻿@page "/add-task"
+@using TaskManager.Models
+@using TaskManager.UI.Services.Interfaces
+@inject ITaskService TaskService
+@inject NavigationManager NavigationManager
+
+<div class="container page-transition mt-4">
+    <h4 class="mb-4">Yeni Görev Ekle</h4>
+
+    <EditForm Model="@taskItem" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Başlık</label>
+            <InputText @bind-Value="taskItem.Title" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Açıklama</label>
+            <InputText @bind-Value="taskItem.Description" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Bitiş Tarihi</label>
+            <InputDate @bind-Value="taskItem.DueDate" class="form-control" />
+        </div>
+
+        <div class="form-check mb-3">
+            <InputCheckbox @bind-Value="taskItem.IsCompleted" class="form-check-input" />
+            <label class="form-check-label">Tamamlandı mı?</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Kullanıcı ID</label>
+            <InputNumber @bind-Value="taskItem.UserId" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Proje ID</label>
+            <InputNumber @bind-Value="taskItem.ProjectId" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Kaydet</button>
+    </EditForm>
+</div>
+
+@code {
+    private TaskItem taskItem = new();
+
+    private async Task HandleValidSubmit()
+    {
+        await TaskService.CreateAsync(taskItem);
+        NavigationManager.NavigateTo("/tasks");
+    }
+}

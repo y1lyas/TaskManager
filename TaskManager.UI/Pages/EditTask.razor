@@ -1,0 +1,78 @@
+﻿@page "/edit-task/{Id:int}"
+@using TaskManager.Models
+@using TaskManager.UI.Services.Interfaces
+@inject ITaskService TaskService
+@inject NavigationManager NavigationManager
+
+<div class="container page-transition mt-4">
+    <h4 class="mb-4">Görev Düzenle</h4>
+
+    @if (taskItem == null)
+    {
+        <p>Görev yükleniyor...</p>
+    }
+    else
+    {
+        <EditForm Model="@taskItem" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Başlık</label>
+                <InputText @bind-Value="taskItem.Title" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Açıklama</label>
+                <InputText @bind-Value="taskItem.Description" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Bitiş Tarihi</label>
+                <InputDate @bind-Value="taskItem.DueDate" class="form-control" />
+            </div>
+
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="taskItem.IsCompleted" class="form-check-input" />
+                <label class="form-check-label">Tamamlandı mı?</label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Kullanıcı ID</label>
+                <InputNumber @bind-Value="taskItem.UserId" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Proje ID</label>
+                <InputNumber @bind-Value="taskItem.ProjectId" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">Güncelle</button>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private TaskItem? taskItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        taskItem = await TaskService.GetByIdAsync(Id);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var success = await TaskService.UpdateAsync(taskItem!);
+        if (success)
+        {
+            NavigationManager.NavigateTo("/tasks");
+        }
+        else
+        {
+            // Gerekirse hata mesajı göster
+        }
+    }
+}
