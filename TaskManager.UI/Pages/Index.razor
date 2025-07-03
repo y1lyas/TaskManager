@@ -1,10 +1,39 @@
 ﻿@page "/"
+@inject AppState AppState
+@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 
+<div style="position: absolute; top: 50px; right: 20px;">
+    <button class="nav-link page-transition btn btn-link text-start text-danger p-2 mt-2 ps-0" @onclick="Logout">
+        <span class="oi oi-account-logout page" aria-hidden="true"></span> Çıkış Yap
+    </button>
+</div>
 <div class="container page-transition mt-5">
     <div class="text-center">
         <h1 class="display-4 mb-3">Görev Yönetim Sistemi</h1>
         <p class="lead">Projelerinizi ve görevlerinizi kolayca yönetin.</p>
 
         <NavLink class="btn btn-outline-light mt-3" href="/tasks">Görev Listesine Git</NavLink>
+       
+        <div style="position: fixed; left: 50%; transform: translateX(-50%); z-index: 1000;">
+            <NavLink class=" page-transition mt-3 nav-link flex-column text-white rounded border border-white p-2"  href="/add-task">
+                <span class="oi oi-plus" aria-hidden="true"></span> Görev Ekle
+            </NavLink>
+        </div>
     </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AppState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/register", true);
+        }
+    }
+    private void Logout()
+    {
+        AppState.Logout();
+        NavigationManager.NavigateTo("/register", true);
+    }
+}

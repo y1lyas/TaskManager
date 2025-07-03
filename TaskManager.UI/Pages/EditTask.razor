@@ -5,6 +5,17 @@
 @inject NavigationManager NavigationManager
 
 <div class="container page-transition mt-4">
+
+    <div class="position: absolute; top: 50px; left: 20px;">
+        <button class="btn border border-1 mb-5 p-2" @onclick="GoBack">←</button>
+
+        @code {
+            private void GoBack()
+            {
+                NavigationManager.NavigateTo("/tasks"); // ya da hangi sayfaya dönmesini istiyorsan onu yaz
+            }
+        }
+    </div>
     <h4 class="mb-4">Görev Düzenle</h4>
 
     @if (taskItem == null)
@@ -37,15 +48,6 @@
                 <label class="form-check-label">Tamamlandı mı?</label>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Kullanıcı ID</label>
-                <InputNumber @bind-Value="taskItem.UserId" class="form-control" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Proje ID</label>
-                <InputNumber @bind-Value="taskItem.ProjectId" class="form-control" />
-            </div>
 
             <button type="submit" class="btn btn-success w-100">Güncelle</button>
         </EditForm>

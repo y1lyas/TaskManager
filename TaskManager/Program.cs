@@ -1,42 +1,58 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using System.Text.Json.Serialization;
 using TaskManager.Data;
-using System.Text.Json.Serialization;
-
+using TaskManager.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Swagger ve Swagger UI
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Controller servisleri
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        policy.WithOrigins("https://localhost:7116") // Blazor UI portu
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
+});
 
+// Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
 
+// JSON döngüsel referans önleme
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 var app = builder.Build();
 
-// Geliþtirme ortamýysa Swagger’ý aç
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// HTTPS ve yetkilendirme
 app.UseHttpsRedirection();
+app.UseCors();
+
+app.UseRouting();
+// Bunlar önemli
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Controller route'larýný kullan
 app.MapControllers();
 
 app.Run();

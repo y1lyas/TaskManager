@@ -3,8 +3,20 @@
 @using TaskManager.UI.Services.Interfaces
 @inject ITaskService TaskService
 @inject NavigationManager NavigationManager
+@inject AppState AppState
+@inject HttpClient Http 
 
 <div class="container page-transition mt-4">
+    <div class="position: absolute; top: 50px; left: 20px;">
+        <button class="btn border border-1 mb-5 p-2" @onclick="GoBack">←</button>
+
+        @code {
+            private void GoBack()
+            {
+                NavigationManager.NavigateTo("/"); // ya da hangi sayfaya dönmesini istiyorsan onu yaz
+            }
+        }
+    </div>
     <h4 class="mb-4">Yeni Görev Ekle</h4>
 
     <EditForm Model="@taskItem" OnValidSubmit="HandleValidSubmit">
@@ -31,15 +43,18 @@
             <label class="form-check-label">Tamamlandı mı?</label>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Kullanıcı ID</label>
-            <InputNumber @bind-Value="taskItem.UserId" class="form-control" />
-        </div>
+        <select @bind="taskItem.ProjectId" class="form-control">
+            <option value="">-- Proje Seçin --</option>
+            @foreach (var p in projects)
+            {
+                <option value="@p.Id">@p.Name</option>
+            }
+        </select>
+        <NavLink class="nav-link p-2 mt-3 mb-3" href="/add-project">
+            <span class="oi oi-plus" aria-hidden="true"></span> Proje Ekle
+        </NavLink>
 
-        <div class="mb-3">
-            <label class="form-label">Proje ID</label>
-            <InputNumber @bind-Value="taskItem.ProjectId" class="form-control" />
-        </div>
+
 
         <button type="submit" class="btn btn-primary w-100">Kaydet</button>
     </EditForm>
@@ -47,10 +62,41 @@
 
 @code {
     private TaskItem taskItem = new();
+    private List<Project> projects = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await Http.GetFromJsonAsync<List<Project>>("https://localhost:7061/api/Project");
+
+
+        var user = await Http.GetFromJsonAsync<ApplicationUser>(
+        $"https://localhost:7061/api/users/email/{AppState.UserEmail}"
+        );
+
+        if (user != null)
+        {
+            taskItem.UserId = user.Id;
+            Console.WriteLine("Atanan User ID: " + taskItem.UserId);
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        await TaskService.CreateAsync(taskItem);
-        NavigationManager.NavigateTo("/tasks");
+        var result = await TaskService.CreateAsync(taskItem);
+        if (result)
+        {
+
+            NavigationManager.NavigateTo("/tasks");
+        }
+        else
+        {
+            Console.WriteLine("Görev ekleme başarısız");
+            Console.WriteLine("Task Başlık: " + taskItem.Title);
+            Console.WriteLine("Task Açıklama: " + taskItem.Description);
+            Console.WriteLine("User ID: " + taskItem.UserId);
+            Console.WriteLine("Project ID: " + taskItem.ProjectId);
+
+        }
     }
 }

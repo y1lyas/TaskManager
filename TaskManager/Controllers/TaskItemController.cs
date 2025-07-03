@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using TaskManager.Data;
 using TaskManager.Models;
 
+
 namespace TaskManager.Controllers
 {
-    [ApiController]
+    [ApiController] 
     [Route("[controller]")]
     public class TaskItemController : ControllerBase
     {
@@ -17,50 +19,80 @@ namespace TaskManager.Controllers
             _context = context;
         }
 
-        // GET: /TaskItem
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetAll()
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<TaskItem>>> GetByUserId(string userId)
         {
-            var tasks = await _context.Tasks
+            return await _context.Tasks
                 .Include(t => t.User)
                 .Include(t => t.Project)
+                .Where(t => t.UserId == userId)
                 .ToListAsync();
-
-            return Ok(tasks);
         }
 
-
-        // GET: /TaskItem/5
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
             var task = await _context.Tasks
-           .Include(t => t.User)
-           .Include(t => t.Project)
-           .FirstOrDefaultAsync(t => t.Id == id);
+                .Include(t => t.User)
+                .Include(t => t.Project)
+                .FirstOrDefaultAsync(t => t.Id == id);
 
-            if (task == null)
-                return NotFound();
-
-            return Ok(task);
+            return task == null ? NotFound() : Ok(task);
         }
 
-        // POST: /TaskItem
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaskItem task)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Kullanıcı kimliği artık string
+            var userExists = await _context.Users.AnyAsync(u => u.Id == task.UserId);
+            if (!userExists)
+                ModelState.AddModelError(nameof(task.UserId), "Specified user does not exist");
+
+            var projectExists = await _context.Projects.AnyAsync(p => p.Id == task.ProjectId);
+            if (!projectExists)
+                ModelState.AddModelError(nameof(task.ProjectId), "Specified project does not exist");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = task.Id }, task);
+
+            var newTask = await _context.Tasks
+                .Include(t => t.User)
+                .Include(t => t.Project)
+                .FirstAsync(t => t.Id == task.Id);
+
+            return CreatedAtAction(nameof(Get), new { id = task.Id }, new
+            {
+                newTask.Id,
+                newTask.Title,
+                User = new { newTask.User?.Id, newTask.User?.UserName },
+                Project = new { newTask.Project?.Id, newTask.Project?.Name }
+            });
         }
 
-        // PUT: /TaskItem/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TaskItem updatedTask)
         {
             var existingTask = await _context.Tasks.FindAsync(id);
             if (existingTask == null)
-                return NotFound("Güncellenecek görev bulunamadı.");
+                return NotFound("Task not found");
+
+            if (existingTask.UserId != updatedTask.UserId &&
+                !await _context.Users.AnyAsync(u => u.Id == updatedTask.UserId))
+            {
+                return BadRequest($"User with ID {updatedTask.UserId} not found");
+            }
+
+            if (existingTask.ProjectId != updatedTask.ProjectId &&
+                !await _context.Projects.AnyAsync(p => p.Id == updatedTask.ProjectId))
+            {
+                return BadRequest($"Project with ID {updatedTask.ProjectId} not found");
+            }
 
             existingTask.Title = updatedTask.Title;
             existingTask.Description = updatedTask.Description;
@@ -73,23 +105,17 @@ namespace TaskManager.Controllers
             return Ok(existingTask);
         }
 
-
-
-
-        // DELETE: /TaskItem/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null)
-                return NotFound("Silinecek görev bulunamadı.");
+                return NotFound();
 
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
-
-
     }
 }

@@ -3,8 +3,21 @@
 @using TaskManager.UI.Services.Interfaces
 @inject ITaskService TaskService
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject AppState AppState
+
 
 <div class="container page-transition mt-4">
+    <div class="position: absolute; top: 50px; left: 20px;">
+        <button class="btn border border-1 mb-5 p-2" @onclick="GoBack">←</button>
+
+        @code {
+            private void GoBack()
+            {
+                NavigationManager.NavigateTo("/"); // ya da hangi sayfaya dönmesini istiyorsan onu yaz
+            }
+        }
+    </div>
 
     @if (!string.IsNullOrEmpty(toastMessage))
     {
@@ -34,6 +47,7 @@
                     <th>Başlık</th>
                     <th>Açıklama</th>
                     <th>Bitiş Tarihi</th>
+                    <th>Proje</th>
                     <th>Tamamlandı mı?</th>
                     <th style="width: 160px;">İşlemler</th>
                 </tr>
@@ -45,6 +59,7 @@
                         <td>@task.Title</td>
                         <td>@task.Description</td>
                         <td>@task.DueDate.ToString("yyyy-MM-dd")</td>
+                        <td>@task.Project?.Name</td>
                         <td>@(task.IsCompleted ? "Evet" : "Hayır")</td>
                         <td>
                             <NavLink class="btn btn-sm btn-primary me-2" href="@($"/edit-task/{task.Id}")">Düzenle</NavLink>
@@ -64,7 +79,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        tasks = await TaskService.GetAllAsync();
+        var userId = AppState.CurrentUser?.Id;
+        Console.WriteLine($"Giriş yapan kullanıcı: {AppState.CurrentUser?.Email}, ID: {AppState.CurrentUser?.Id}");
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            tasks = await TaskService.GetTasksByUserIdAsync(userId);
+        }
     }
 
     private async Task DeleteTask(int id)

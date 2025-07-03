@@ -1,0 +1,66 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Identity
+@using TaskManager.Models
+@using System.ComponentModel.DataAnnotations
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@inject UserManager<ApplicationUser> UserManager
+@inject AppState AppState
+
+<div class="page-transition p-2">
+<h3>Giriş Yap</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+<EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="Email" />
+    <InputText @bind-Value="loginModel.Password" type="password" class="form-control mt-2" placeholder="Şifre" />
+    <button type="submit" class="btn btn-primary mb-3 mt-3">Giriş Yap</button>
+</EditForm>
+    <NavLink class="btn btn-link text-info mt-2" href="/register">Hesabınız yok mu? Kayıt olun!</NavLink>
+    </div>
+@code {
+    private LoginModel loginModel = new();
+    private string? ErrorMessage;
+
+    private async Task HandleLogin()
+    {
+        var user = await UserManager.FindByEmailAsync(loginModel.Email);
+
+        if (user != null)
+        {
+            var isPasswordCorrect = await UserManager.CheckPasswordAsync(user, loginModel.Password);
+
+            if (isPasswordCorrect)
+            {
+                AppState.Login(user.Id, user.Email, user.UserName);
+
+                Navigation.NavigateTo("/", forceLoad: false);
+
+            }
+            else
+            {
+                ErrorMessage = "Geçersiz şifre.";
+            }
+        }
+        else
+        {
+            ErrorMessage = "Kullanıcı bulunamadı.";
+        }
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email gerekli.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Şifre gerekli.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

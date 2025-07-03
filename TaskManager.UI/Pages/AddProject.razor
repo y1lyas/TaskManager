@@ -1,0 +1,60 @@
+﻿@page "/add-project"
+@inject AppState AppState
+@inject HttpClient Http
+@using TaskManager.Models
+@inject NavigationManager NavigationManager
+
+<div class="page-transition p-3">
+<div class="position: absolute; top: 50px; left: 20px;">
+<button class="btn border border-1 mb-5 p-2" @onclick="GoBack">←</button>
+
+@code {
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/add-task"); // ya da hangi sayfaya dönmesini istiyorsan onu yaz
+    }
+}
+</div>
+
+<h3 class="mb-3">Yeni Proje Ekle</h3>
+
+<EditForm Model="project" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="name">Proje Adı</label>
+        <InputText id="name" class="form-control" @bind-Value="project.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label for="description">Açıklama</label>
+        <InputText id="description" class="form-control" @bind-Value="project.Description" />
+    </div>
+
+    <button class="btn btn-primary mt-3" type="submit">Projeyi Kaydet</button>
+</EditForm>
+</div>
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-success mt-3">@Message</div>
+}
+
+@code {
+    private Project project = new();
+    private string? Message;
+
+    private async Task HandleValidSubmit()
+    {
+        var response = await Http.PostAsJsonAsync("https://localhost:7061/api/Project", project);
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Proje başarıyla eklendi.";
+            project = new(); // Formu temizle
+        }
+        else
+        {
+            Message = "Proje eklenirken bir hata oluştu.";
+        }
+    }
+}

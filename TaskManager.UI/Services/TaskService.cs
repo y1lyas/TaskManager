@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using TaskManager.Models;
-using TaskManager.Models;
 using TaskManager.UI.Services.Interfaces;
+
 
 namespace TaskManager.UI.Services
 {
@@ -41,5 +41,17 @@ namespace TaskManager.UI.Services
             var response = await _httpClient.DeleteAsync($"https://localhost:7061/TaskItem/{id}");
             return response.IsSuccessStatusCode;
         }
+        public async Task<List<TaskItem>> GetTasksByUserIdAsync(string userId)
+        {
+            var response = await _httpClient.GetAsync($"https://localhost:7061/TaskItem/user/{userId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<TaskItem>>() ?? new List<TaskItem>();
+            }
+
+            return new List<TaskItem>();
+        }
+
     }
 }
